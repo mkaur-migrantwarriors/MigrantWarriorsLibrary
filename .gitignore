@@ -1,0 +1,11 @@
+
+# Build Folders
+bin
+obj
+
+# User-specific files
+*.suo
+*.user
+
+# .vs folder
+.vs
