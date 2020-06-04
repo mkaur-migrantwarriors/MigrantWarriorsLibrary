@@ -18,6 +18,9 @@ namespace MigrantWarriorsLibrary.Models
         public long PinCode { get; set; }
         public string District { get; set; }
         public string State { get; set; }
+        public string Gender { get; set; }
+        public bool IsVerified { get; set; }
+        public string Mode { get; set; }
         public List<string> Skill { get; set; }
     }
 }

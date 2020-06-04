@@ -46,23 +46,18 @@ namespace MigrantWarriorsLibrary.Controllers
         }
 
         [HttpPost]
-        public ActionResult<bool> Create([FromBody] Migrant migrant)
+        public ActionResult<object> Create([FromBody] Migrant migrant)
         {
+            Helper helper = new Helper();
             try
             {
                 AdhaarIdFilter af = new AdhaarIdFilter();
-                if (!af.IsValidAadhaarNumber(migrant.AadharNumber))
-                {
-                    return false;
-                }
-                _migrantService.UpdateMigrantWithStateAndDistrict(out migrant, migrant);
-                _migrantService.Create(migrant);
-
-                return true;
+                _migrantService.UpdateMigrantData(out migrant, migrant, af.IsValidAadhaarNumber(migrant.AadharNumber));
+                return _migrantService.Create(migrant);
             }
-            catch(Exception ex)
+            catch(Exception)
             {
-                return false;
+                return helper.CreateResponse(Helper.FAILURE, Helper.DATANOTADDED);
             }
         }
 

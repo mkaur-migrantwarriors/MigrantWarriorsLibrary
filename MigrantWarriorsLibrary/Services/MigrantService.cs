@@ -9,6 +9,7 @@ using System.Linq;
 using System.Net;
 using System.Web.Http;
 using MigrantWarriorsLibrary.Models;
+using MigrantWarriorsLibrary.Filters;
 
 namespace MigrantWarriorsLibrary.Services
 {
@@ -32,10 +33,24 @@ namespace MigrantWarriorsLibrary.Services
         public Migrant Get(string id) =>
             _migrants.Find<Migrant>(migrant => migrant.Id == id).FirstOrDefault();
 
-        public Migrant Create(Migrant migrant)
+        public dynamic Create(Migrant migrant)
         {
-            _migrants.InsertOne(migrant);
-            return migrant;
+            Helper helper = new Helper();
+            try
+            {
+                List<Migrant> existingMigrant = Get().Where(m => m.AadharNumber + m.Phone == migrant.AadharNumber + migrant.Phone).ToList();
+                if (existingMigrant.Count == 0)
+                {
+                    _migrants.InsertOne(migrant);
+                    return helper.CreateResponse(Helper.SUCCEEDED, migrant.IsVerified ? Helper.SUCCESSFULLYADDED : Helper.PENDINGVERIFICATION);
+                }
+
+                return helper.CreateResponse(Helper.FAILURE, Helper.ALREADYEXISTS);
+            }
+            catch(Exception)
+            {
+                return helper.CreateResponse(Helper.FAILURE, Helper.DATANOTADDED);
+            }
         }
 
         public void Update(string id, Migrant migrant) =>
@@ -58,7 +73,7 @@ namespace MigrantWarriorsLibrary.Services
             return data;
         }
 
-        public void UpdateMigrantWithStateAndDistrict(out Migrant migrant, Migrant existingMigrant)
+        public void UpdateMigrantData(out Migrant migrant, Migrant existingMigrant, bool isVerified)
         {
             migrant = existingMigrant;
             var completeInfo = new Dictionary<string, string>();
@@ -79,6 +94,7 @@ namespace MigrantWarriorsLibrary.Services
             }
             migrant.District = completeInfo["district"];
             migrant.State = completeInfo["state_name"];
+            migrant.IsVerified = isVerified;
         }
 
         public List<Migrant> GetStateWiseData(string state)
