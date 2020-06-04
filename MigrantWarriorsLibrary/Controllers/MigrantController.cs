@@ -93,11 +93,11 @@ namespace MigrantWarriorsLibrary.Controllers
             return NoContent();
         }
 
-        [Route("{pincode}")]
+        [Route("coordinates")]
         [HttpGet()]
-        public ActionResult<Coordinates> Get(long pincode)
+        public ActionResult<List<Coordinates>> GetCountOfMigrantsAtEachLocation()
         {
-            var data = _migrantService.GetLatitudeLongitudeWithMigrantsCount(pincode);
+            var data = _migrantService.GetLatitudeLongitudeWithMigrantsCount();
 
             if (data == null)
             {
@@ -126,6 +126,76 @@ namespace MigrantWarriorsLibrary.Controllers
         public ActionResult<UIData> GetCountsForUIPanel()
         {
             var data = _migrantService.GetUIPanelCounts();
+
+            if (data == null)
+            {
+                return NotFound();
+            }
+
+            return data;
+        }
+
+        [Route("statewise")]
+        [HttpGet()]
+        public ActionResult<Dictionary<string, int>> GetMigrantsDataForAllStates()
+        {
+            var data = _migrantService.GetCountForAllStates();
+
+            if (data == null)
+            {
+                return NotFound();
+            }
+
+            return data;
+        }
+
+        [Route("districts/{state}")]
+        [HttpGet()]
+        public ActionResult<string[]> GetDistrictsOfState(string state)
+        {
+            var data = _migrantService.GetDistricts(state);
+
+            if (data == null)
+            {
+                return NotFound();
+            }
+
+            return data;
+        }
+
+        [Route("graph/{state?}/{district?}")]
+        [HttpGet()]
+        public ActionResult<object> GetDataOfVerifiedUnVerifiedMigrantsOfLast7Days(string state = null, string district = null)
+        {
+            var data = _migrantService.GetLast7DaysVerifiedUnverifiedCount(state, district);
+
+            if (data == null)
+            {
+                return NotFound();
+            }
+
+            return data;
+        }
+
+        [Route("skills/{state?}/{district?}")]
+        [HttpGet()]
+        public ActionResult<object> GetSkillsCount(string state = null, string district = null)
+        {
+            var data = _migrantService.GetSkillsCount(state, district);
+
+            if (data == null)
+            {
+                return NotFound();
+            }
+
+            return data;
+        }
+
+        [Route("skills/topfive/{state?}/{district?}")]
+        [HttpGet()]
+        public ActionResult<object> GetTopFiveSkillsCount(string state = null, string district = null)
+        {
+            var data = _migrantService.GetSkillsCount(state, district, true);
 
             if (data == null)
             {

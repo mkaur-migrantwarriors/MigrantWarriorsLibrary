@@ -17,6 +17,7 @@ namespace MigrantWarriorsLibrary.Services
     {
         private readonly IMongoCollection<Migrant> _migrants;
         private readonly Dictionary<long, Tuple<decimal, decimal>> _coordinatesData;
+        private readonly Dictionary<string, string[]> _statesDistricts;
 
         public MigrantService(IMongoSettings settings)
         {
@@ -25,6 +26,8 @@ namespace MigrantWarriorsLibrary.Services
 
             _migrants = database.GetCollection<Migrant>(settings.CollectionName);
             _coordinatesData = GetLatitudeLongitudeInfo();
+            _statesDistricts = GetStatesWithDistricts();
+
         }
 
         public List<Migrant> Get() =>
@@ -62,14 +65,21 @@ namespace MigrantWarriorsLibrary.Services
         public void Remove(string id) =>
             _migrants.DeleteOne(mingrant => mingrant.Id == id);
 
-        public Coordinates GetLatitudeLongitudeWithMigrantsCount(long pincode)
+        public List<Coordinates> GetLatitudeLongitudeWithMigrantsCount()
         {
-            var coordinates = _coordinatesData.FirstOrDefault(t => t.Key == pincode).Value;
-            var migrants = Get().Where(t => t.PinCode == pincode).Count();
-            var data = new Coordinates();
-            data.Latitude = coordinates.Item1;
-            data.Longitude = coordinates.Item2;
-            data.Count = migrants;
+            var listOfData = Get();
+            var pincodes = listOfData.Select(x => x.PinCode).ToList().Distinct();
+            var data = new List<Coordinates>();
+            foreach(var pincode in pincodes)
+            {
+                var coordinate = new Coordinates();
+                var latLong = _coordinatesData.FirstOrDefault(t => t.Key == pincode).Value;
+                coordinate.Latitude = latLong.Item1;
+                coordinate.Longitude = latLong.Item2;
+                coordinate.Count = listOfData.Where(x => x.PinCode == pincode).Count();
+                data.Add(coordinate);
+            }
+
             return data;
         }
 
@@ -122,6 +132,74 @@ namespace MigrantWarriorsLibrary.Services
                 Male = listOfdata.Where(x => x.Gender == "Male").Count(),
                 RegistrationModeCount = modeCount
             };
+        }
+
+        public Dictionary<string, int> GetCountForAllStates()
+        {
+            var listOfdata = Get();
+            Dictionary<string, int> data = new Dictionary<string, int>();
+            foreach(var state in _statesDistricts)
+            {
+                var count = listOfdata.Where(x => x.State.ToLower() == state.Key.ToLower()).Count();
+                data.Add(state.Key, count);
+            }
+            return data;
+        }
+
+        public string[] GetDistricts(string stateName)
+        {
+            return _statesDistricts.FirstOrDefault(x => x.Key.ToLower() == stateName.ToLower()).Value.ToArray();
+        }
+
+        public dynamic GetLast7DaysVerifiedUnverifiedCount(string state, string district)
+        {
+            var listOfData = state != null ? Get().FindAll (x => (district != null ? x.District.ToString().ToLower() == district.ToLower() : x.State.ToString().ToLower() == state.ToLower()) && x.RegisteredOn >= DateTime.Now.AddDays(-7)).ToList()
+                : Get().FindAll(x => x.RegisteredOn >= DateTime.Now.AddDays(-7)).ToList();
+            return new
+            {
+                Verified = listOfData.Where(x => x.IsVerified).Count(),
+                UnVerified = listOfData.Where(x => !x.IsVerified).Count()
+            };
+
+        }
+
+        public Dictionary<string, int> GetSkillsCount(string state, string district, bool isTopFive = false)
+        {
+            Helper helper = new Helper();
+            var data = new Dictionary<string, int>();
+            var listOfData = state != null ? Get().FindAll(x => district != null ? x.District.ToString().ToLower() == district.ToLower() : x.State.ToString().ToLower() == state.ToLower()).ToList()
+                : Get().ToList();
+            foreach(string skill in helper.Skills)
+            {
+                data.Add(skill, listOfData.Where(x => x.Skill.Contains(skill)).Count());
+            }
+
+            if (isTopFive)
+            {
+                return data.OrderByDescending(pair => pair.Value).Take(5)
+                   .ToDictionary(pair => pair.Key, pair => pair.Value);
+            }
+            else
+            {
+                return data.OrderBy(pair => pair.Value).ToDictionary(pair => pair.Key, pair => pair.Value);
+            }
+        }
+
+        private Dictionary<string, string[]> GetStatesWithDistricts()
+        {
+            var info = new Dictionary<string, string[]>();
+            using (TextFieldParser parser = new TextFieldParser(@"Resources\States-Districts.csv"))
+            {
+                parser.TextFieldType = FieldType.Delimited;
+                parser.SetDelimiters(",");
+                while (!parser.EndOfData)
+                {
+                    //Processing row
+                    string[] fields = parser.ReadFields();
+                    info.Add(fields[0], fields.Skip(1).ToArray());
+                }
+            }
+            return info;
         }
 
         private Dictionary<long, Tuple<decimal, decimal>> GetLatitudeLongitudeInfo()
