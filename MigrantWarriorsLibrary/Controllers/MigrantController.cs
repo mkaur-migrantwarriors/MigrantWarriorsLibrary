@@ -57,7 +57,7 @@ namespace MigrantWarriorsLibrary.Controllers
             }
             catch(Exception)
             {
-                return helper.CreateResponse(Helper.FAILURE, Helper.DATANOTADDED);
+                return helper.CreateResponse(404);
             }
         }
 
@@ -112,6 +112,20 @@ namespace MigrantWarriorsLibrary.Controllers
         public ActionResult<List<Migrant>> GetMigrantsDataStateWise(string state)
         {
             var data = _migrantService.GetStateWiseData(state);
+
+            if (data == null)
+            {
+                return NotFound();
+            }
+
+            return data;
+        }
+
+        [Route("paneldata")]
+        [HttpGet()]
+        public ActionResult<UIData> GetCountsForUIPanel()
+        {
+            var data = _migrantService.GetUIPanelCounts();
 
             if (data == null)
             {

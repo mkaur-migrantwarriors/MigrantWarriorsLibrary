@@ -42,14 +42,14 @@ namespace MigrantWarriorsLibrary.Services
                 if (existingMigrant.Count == 0)
                 {
                     _migrants.InsertOne(migrant);
-                    return helper.CreateResponse(Helper.SUCCEEDED, migrant.IsVerified ? Helper.SUCCESSFULLYADDED : Helper.PENDINGVERIFICATION);
+                    return helper.CreateResponse(migrant.IsVerified ? 401 : 402);
                 }
 
-                return helper.CreateResponse(Helper.FAILURE, Helper.ALREADYEXISTS);
+                return helper.CreateResponse(403);
             }
             catch(Exception)
             {
-                return helper.CreateResponse(Helper.FAILURE, Helper.DATANOTADDED);
+                return helper.CreateResponse(404);
             }
         }
 
@@ -95,11 +95,33 @@ namespace MigrantWarriorsLibrary.Services
             migrant.District = completeInfo["district"];
             migrant.State = completeInfo["state_name"];
             migrant.IsVerified = isVerified;
+            migrant.RegisteredOn = DateTime.Now;
         }
 
         public List<Migrant> GetStateWiseData(string state)
         {
             return Get().Where(t => t.State.ToLower() == state.ToLower()).ToList();
+        }
+
+        public UIData GetUIPanelCounts()
+        {
+            var listOfdata = Get();
+            ModeOfRegistration modeCount = new ModeOfRegistration
+            {
+                Whatsapp = listOfdata.Where(x => x.Mode == "Whatsapp").Count(),
+                Telegram = listOfdata.Where(x => x.Mode == "Telegram").Count(),
+                SMS = listOfdata.Where(x => x.Mode == "SMS").Count(),
+                WebForm = listOfdata.Where(x => x.Mode == "Web Form").Count(),
+                PhoneCall = listOfdata.Where(x => x.Mode == "Phone call").Count(),
+            };
+            return new UIData
+            {
+                Verified = listOfdata.Where(x => x.IsVerified == true).Count(),
+                UnVerified = listOfdata.Where(x => x.IsVerified == false).Count(),
+                Female = listOfdata.Where(x => x.Gender == "Female").Count(),
+                Male = listOfdata.Where(x => x.Gender == "Male").Count(),
+                RegistrationModeCount = modeCount
+            };
         }
 
         private Dictionary<long, Tuple<decimal, decimal>> GetLatitudeLongitudeInfo()

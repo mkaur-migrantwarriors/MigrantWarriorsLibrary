@@ -1,6 +1,7 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 
 namespace MigrantWarriorsLibrary.Models
@@ -21,6 +22,7 @@ namespace MigrantWarriorsLibrary.Models
         public string Gender { get; set; }
         public bool IsVerified { get; set; }
         public string Mode { get; set; }
+        public DateTime RegisteredOn { get; set; }
         public List<string> Skill { get; set; }
     }
 }
