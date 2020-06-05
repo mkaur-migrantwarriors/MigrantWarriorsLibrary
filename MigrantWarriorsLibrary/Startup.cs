@@ -31,6 +31,10 @@ namespace MigrantWarriorsLibrary
 
             services.AddSingleton<MigrantService>();
             services.AddControllers();
+            services.AddCors(c =>
+            {
+                c.AddPolicy("AllowOrigin", options => options.AllowAnyOrigin());
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -42,6 +46,7 @@ namespace MigrantWarriorsLibrary
             }
 
             app.UseRouting();
+            app.UseCors(options => options.AllowAnyOrigin());
 
             app.UseAuthorization();
 
