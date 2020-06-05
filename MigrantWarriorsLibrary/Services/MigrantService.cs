@@ -18,6 +18,7 @@ namespace MigrantWarriorsLibrary.Services
         private readonly IMongoCollection<Migrant> _migrants;
         private readonly Dictionary<long, Tuple<decimal, decimal>> _coordinatesData;
         private readonly Dictionary<string, string[]> _statesDistricts;
+        private readonly Dictionary<long, Tuple<string, string>> _pincodeRegions;
 
         public MigrantService(IMongoSettings settings)
         {
@@ -27,7 +28,7 @@ namespace MigrantWarriorsLibrary.Services
             _migrants = database.GetCollection<Migrant>(settings.CollectionName);
             _coordinatesData = GetLatitudeLongitudeInfo();
             _statesDistricts = GetStatesWithDistricts();
-
+            _pincodeRegions = GetStatesDistrictWithPincode();
         }
 
         public List<Migrant> Get() =>
@@ -86,24 +87,13 @@ namespace MigrantWarriorsLibrary.Services
         public void UpdateMigrantData(out Migrant migrant, Migrant existingMigrant, bool isVerified)
         {
             migrant = existingMigrant;
-            var completeInfo = new Dictionary<string, string>();
-            var client = new RestClient($"https://pincode.saratchandra.in/api/pincode/{migrant.PinCode}");
-            var request = new RestRequest(Method.GET);
-            IRestResponse response = client.Execute(request);
-            if(response.StatusCode == HttpStatusCode.NotFound)
+            var pincode_statedistrict = _pincodeRegions.FirstOrDefault(t => t.Key == existingMigrant.PinCode).Value;
+            if (pincode_statedistrict == null)
             {
                 throw new HttpResponseException(HttpStatusCode.NotFound);
             }
-            object obj = JsonConvert.DeserializeObject<object>(response.Content);
-            var list = JObject.FromObject(obj).SelectToken("data[0]").ToList();
-            foreach(JProperty listitem in list)
-            {
-                var key = listitem.Name;
-                var value = ((JValue)listitem.First).Value;
-                completeInfo.Add(key, value.ToString());
-            }
-            migrant.District = completeInfo["district"];
-            migrant.State = completeInfo["state_name"];
+            migrant.District = pincode_statedistrict.Item1;
+            migrant.State = pincode_statedistrict.Item2;
             migrant.IsVerified = isVerified;
             migrant.RegisteredOn = DateTime.Now;
         }
@@ -215,6 +205,27 @@ namespace MigrantWarriorsLibrary.Services
                     string[] fields = parser.ReadFields();
                     var latitudeLogitude = new Tuple<decimal, decimal>(Convert.ToDecimal(fields[1]), Convert.ToDecimal(fields[2]));
                     info.Add(Convert.ToInt64(fields[0]), latitudeLogitude);
+                }
+            }
+            return info;
+        }
+
+        private Dictionary<long, Tuple<string, string>> GetStatesDistrictWithPincode()
+        {
+            var info = new Dictionary<long, Tuple<string, string>>();
+            using (TextFieldParser parser = new TextFieldParser(@"Resources\Pincode_StatesDistrict.csv"))
+            {
+                parser.TextFieldType = FieldType.Delimited;
+                parser.SetDelimiters(",");
+                while (!parser.EndOfData)
+                {
+                    //Processing row
+                    string[] fields = parser.ReadFields();
+                    var region = new Tuple<string, string>(fields[1], fields[2]);
+                    if (!info.ContainsKey(Convert.ToInt64(fields[0])))
+                    {
+                        info.Add(Convert.ToInt64(fields[0]), region);
+                    }
                 }
             }
             return info;
