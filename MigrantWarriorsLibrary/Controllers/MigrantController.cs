@@ -204,5 +204,47 @@ namespace MigrantWarriorsLibrary.Controllers
 
             return data;
         }
+
+        [Route("topfivestates/{gender}")]
+        [HttpGet()]
+        public ActionResult<object> GetTopFiveStatesGenderCount(string gender)
+        {
+            var data = _migrantService.GetGenderWiseInTopFiveStates(gender);
+
+            if (data == null)
+            {
+                return NotFound();
+            }
+
+            return data;
+        }
+
+        [Route("modesOfRegistration/{state?}/{district?}")]
+        [HttpGet()]
+        public ActionResult<object> GetTopFiveModeOfRegistration(string state, string district)
+        {
+            var data = _migrantService.GetTopFiveRegistration(state, district);
+
+            if (data == null)
+            {
+                return NotFound();
+            }
+
+            return data;
+        }
+
+        [Route("topfiveskills/{state?}/{district?}")]
+        [HttpGet()]
+        public ActionResult<object> GetTopFiveSkillsVerifiedUnverified(string state, string district)
+        {
+            var data = _migrantService.GetTopFiveSkillsVerifiedUnverifiedCount(state, district);
+
+            if (data == null)
+            {
+                return NotFound();
+            }
+
+            return data;
+        }
     }
 }

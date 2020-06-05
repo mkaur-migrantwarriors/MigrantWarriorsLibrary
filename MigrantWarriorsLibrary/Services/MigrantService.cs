@@ -175,6 +175,55 @@ namespace MigrantWarriorsLibrary.Services
             }
         }
 
+        public Dictionary<string, int> GetGenderWiseInTopFiveStates(string gender)
+        {
+            var listOfData = Get();
+            var info = new Dictionary<string, int>();
+            var genderData = listOfData.Where(x => x.Gender.ToLower() == gender.ToLower()).ToList();
+            foreach (var stateDistrict in _statesDistricts)
+            {
+                var countInState = genderData.Where(x => x.State.ToLower() == stateDistrict.Key.ToLower()).Count();
+                info.Add(stateDistrict.Key, countInState);
+            }
+
+            return info.OrderByDescending(pair => pair.Value).Take(5)
+                   .ToDictionary(pair => pair.Key, pair => pair.Value);
+        }
+
+        public dynamic GetTopFiveRegistration(string state, string district)
+        {
+            var listOfData = state != null ? Get().FindAll(x => district != null ? x.District.ToString().ToLower() == district.ToLower() : x.State.ToString().ToLower() == state.ToLower()).ToList()
+                        : Get().ToList();
+
+            return new ModeOfRegistration
+            {
+                Whatsapp = listOfData.Where(x => x.Mode == "Whatsapp").Count(),
+                Telegram = listOfData.Where(x => x.Mode == "Telegram").Count(),
+                SMS = listOfData.Where(x => x.Mode == "SMS").Count(),
+                WebForm = listOfData.Where(x => x.Mode == "Web Form").Count(),
+                PhoneCall = listOfData.Where(x => x.Mode == "Phone call").Count(),
+            };
+        }
+
+        public Dictionary<string, object> GetTopFiveSkillsVerifiedUnverifiedCount(string state, string district)
+        {
+            var info = new Dictionary<string, object>();
+            var listOfData = state != null ? Get().FindAll(x => district != null ? x.District.ToString().ToLower() == district.ToLower() : x.State.ToString().ToLower() == state.ToLower()).ToList()
+            : Get().ToList();
+            var top5Skills = GetSkillsCount(state, district, true);
+            foreach(var skill in top5Skills)
+            {
+                var verifiedUnverifiedCount = new
+                {
+                    verified = listOfData.Where(x => x.IsVerified && x.Skill.Contains(skill.Key)).Count(),
+                    unverified = listOfData.Where(x => !x.IsVerified && x.Skill.Contains(skill.Key)).Count()
+                };
+                info.Add(skill.Key.ToString(), verifiedUnverifiedCount);
+            }
+
+            return info;
+        }
+
         private Dictionary<string, string[]> GetStatesWithDistricts()
         {
             var info = new Dictionary<string, string[]>();
