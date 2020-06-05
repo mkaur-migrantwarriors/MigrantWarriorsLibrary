@@ -14,7 +14,9 @@ namespace MigrantWarriorsLibrary
             Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
-                    webBuilder.UseStartup<Startup>();
+                    webBuilder.UseKestrel()
+                    .UseIISIntegration()
+                    .UseStartup<Startup>();
                 });
     }
 }
