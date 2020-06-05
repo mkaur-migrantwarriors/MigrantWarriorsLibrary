@@ -43,6 +43,10 @@ namespace MigrantWarriorsLibrary.Services
             try
             {
                 List<Migrant> existingMigrant = Get().Where(m => m.AadharNumber + m.Phone == migrant.AadharNumber + migrant.Phone).ToList();
+                if (migrant.State == null && migrant.District == null)
+                {
+                    return helper.CreateResponse(405);
+                }
                 if (existingMigrant.Count == 0)
                 {
                     _migrants.InsertOne(migrant);
@@ -90,10 +94,14 @@ namespace MigrantWarriorsLibrary.Services
             var pincode_statedistrict = _pincodeRegions.FirstOrDefault(t => t.Key == existingMigrant.PinCode).Value;
             if (pincode_statedistrict == null)
             {
-                throw new HttpResponseException(HttpStatusCode.NotFound);
+                migrant.District = null;
+                migrant.State = null;
             }
+            else
+            {
             migrant.District = pincode_statedistrict.Item1;
             migrant.State = pincode_statedistrict.Item2;
+            }
             migrant.IsVerified = isVerified;
             migrant.RegisteredOn = DateTime.Now;
         }
