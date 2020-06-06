@@ -4,11 +4,13 @@ using System.Collections.Generic;
 using MigrantWarriorsLibrary.Filters;
 using MigrantWarriorsLibrary.Models;
 using MigrantWarriorsLibrary.Services;
+using Microsoft.AspNetCore.Cors;
 
 namespace MigrantWarriorsLibrary.Controllers
 {
     [Route("api/migrants")]
     [ApiController]
+    [EnableCors("AllowOrigin")]
     public class MigrantController : ControllerBase
     {
         private readonly MigrantService _migrantService;

@@ -79,10 +79,13 @@ namespace MigrantWarriorsLibrary.Services
             {
                 var coordinate = new Coordinates();
                 var latLong = _coordinatesData.FirstOrDefault(t => t.Key == pincode).Value;
-                coordinate.Latitude = latLong.Item1;
-                coordinate.Longitude = latLong.Item2;
-                coordinate.Count = listOfData.Where(x => x.PinCode == pincode).Count();
-                data.Add(coordinate);
+                if (latLong != null)
+                {
+                    coordinate.Latitude = latLong.Item1;
+                    coordinate.Longitude = latLong.Item2;
+                    coordinate.Count = listOfData.Where(x => x.PinCode == pincode).Count();
+                    data.Add(coordinate);
+                }
             }
 
             return data;
