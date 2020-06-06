@@ -1,15 +1,10 @@
 ﻿using Microsoft.VisualBasic.FileIO;
+using MigrantWarriorsLibrary.Filters;
+using MigrantWarriorsLibrary.Models;
 using MongoDB.Driver;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Web.Http;
-using MigrantWarriorsLibrary.Models;
-using MigrantWarriorsLibrary.Filters;
 
 namespace MigrantWarriorsLibrary.Services
 {
@@ -19,6 +14,7 @@ namespace MigrantWarriorsLibrary.Services
         private readonly Dictionary<long, Tuple<decimal, decimal>> _coordinatesData;
         private readonly Dictionary<string, string[]> _statesDistricts;
         private readonly Dictionary<long, Tuple<string, string>> _pincodeRegions;
+        private List<Migrant> _dbData;
 
         public MigrantService(IMongoSettings settings)
         {
@@ -31,18 +27,29 @@ namespace MigrantWarriorsLibrary.Services
             _pincodeRegions = GetStatesDistrictWithPincode();
         }
 
-        public List<Migrant> Get() =>
-            _migrants.Find(migrant => !string.IsNullOrEmpty(migrant.Id)).ToList();
+        public bool Get()
+        {
+            _dbData = _migrants.Find(migrant => !string.IsNullOrEmpty(migrant.Id)).ToList();
+            if(_dbData == null)
+            {
+                return false;
+            }
+            return true;
+        }
 
         public Migrant Get(string id) =>
             _migrants.Find<Migrant>(migrant => migrant.Id == id).FirstOrDefault();
 
         public dynamic Create(Migrant migrant)
         {
+            if (_dbData == null)
+            {
+                Get();
+            }
             Helper helper = new Helper();
             try
             {
-                List<Migrant> existingMigrant = Get().Where(m => m.AadharNumber + m.Phone == migrant.AadharNumber + migrant.Phone).ToList();
+                List<Migrant> existingMigrant = _dbData.Where(m => m.AadharNumber + m.Phone == migrant.AadharNumber + migrant.Phone).ToList();
                 if (migrant.State == null && migrant.District == null)
                 {
                     return helper.CreateResponse(405);
@@ -72,8 +79,11 @@ namespace MigrantWarriorsLibrary.Services
 
         public List<Coordinates> GetLatitudeLongitudeWithMigrantsCount()
         {
-            var listOfData = Get();
-            var pincodes = listOfData.Select(x => x.PinCode).ToList().Distinct();
+            if(_dbData == null)
+            {
+                Get();
+            }
+            var pincodes = _dbData.Select(x => x.PinCode).ToList().Distinct();
             var data = new List<Coordinates>();
             foreach(var pincode in pincodes)
             {
@@ -83,7 +93,7 @@ namespace MigrantWarriorsLibrary.Services
                 {
                     coordinate.Latitude = latLong.Item1;
                     coordinate.Longitude = latLong.Item2;
-                    coordinate.Count = listOfData.Where(x => x.PinCode == pincode).Count();
+                    coordinate.Count = _dbData.Where(x => x.PinCode == pincode).Count();
                     data.Add(coordinate);
                 }
             }
@@ -111,37 +121,47 @@ namespace MigrantWarriorsLibrary.Services
 
         public List<Migrant> GetStateWiseData(string state)
         {
-            return Get().Where(t => t.State.ToLower() == state.ToLower()).ToList();
+            if(_dbData == null)
+            {
+                Get();
+            }
+            return _dbData.Where(t => t.State.ToLower() == state.ToLower()).ToList();
         }
 
         public UIData GetUIPanelCounts()
         {
-            var listOfdata = Get();
+            if (_dbData == null)
+            {
+                Get();
+            }
             ModeOfRegistration modeCount = new ModeOfRegistration
             {
-                Whatsapp = listOfdata.Where(x => x.Mode == "Whatsapp").Count(),
-                Telegram = listOfdata.Where(x => x.Mode == "Telegram").Count(),
-                SMS = listOfdata.Where(x => x.Mode == "SMS").Count(),
-                WebForm = listOfdata.Where(x => x.Mode == "Web Form").Count(),
-                PhoneCall = listOfdata.Where(x => x.Mode == "Phone call").Count(),
+                Whatsapp = _dbData.Where(x => x.Mode == "Whatsapp").Count(),
+                Telegram = _dbData.Where(x => x.Mode == "Telegram").Count(),
+                SMS = _dbData.Where(x => x.Mode == "SMS").Count(),
+                WebForm = _dbData.Where(x => x.Mode == "Web Form").Count(),
+                PhoneCall = _dbData.Where(x => x.Mode == "Phone call").Count(),
             };
             return new UIData
             {
-                Verified = listOfdata.Where(x => x.IsVerified == true).Count(),
-                UnVerified = listOfdata.Where(x => x.IsVerified == false).Count(),
-                Female = listOfdata.Where(x => x.Gender == "Female").Count(),
-                Male = listOfdata.Where(x => x.Gender == "Male").Count(),
+                Verified = _dbData.Where(x => x.IsVerified == true).Count(),
+                UnVerified = _dbData.Where(x => x.IsVerified == false).Count(),
+                Female = _dbData.Where(x => x.Gender == "Female").Count(),
+                Male = _dbData.Where(x => x.Gender == "Male").Count(),
                 RegistrationModeCount = modeCount
             };
         }
 
         public Dictionary<string, int> GetCountForAllStates()
         {
-            var listOfdata = Get();
+            if (_dbData == null)
+            {
+                Get();
+            }
             Dictionary<string, int> data = new Dictionary<string, int>();
             foreach(var state in _statesDistricts)
             {
-                var count = listOfdata.Where(x => x.State.ToLower() == state.Key.ToLower()).Count();
+                var count = _dbData.Where(x => x.State.ToLower() == state.Key.ToLower()).Count();
                 data.Add(state.Key, count);
             }
             return data;
@@ -154,8 +174,12 @@ namespace MigrantWarriorsLibrary.Services
 
         public dynamic GetLast7DaysVerifiedUnverifiedCount(string state, string district)
         {
-            var listOfData = state != null ? Get().FindAll (x => (district != null ? x.District.ToString().ToLower() == district.ToLower() : x.State.ToString().ToLower() == state.ToLower()) && x.RegisteredOn >= DateTime.Now.AddDays(-7)).ToList()
-                : Get().FindAll(x => x.RegisteredOn >= DateTime.Now.AddDays(-7)).ToList();
+            if (_dbData == null)
+            {
+                Get();
+            }
+            var listOfData = state != null ? _dbData.FindAll (x => (district != null ? x.District.ToString().ToLower() == district.ToLower() : x.State.ToString().ToLower() == state.ToLower()) && x.RegisteredOn >= DateTime.Now.AddDays(-7)).ToList()
+                : _dbData.FindAll(x => x.RegisteredOn >= DateTime.Now.AddDays(-7)).ToList();
             return new
             {
                 Verified = listOfData.Where(x => x.IsVerified).Count(),
@@ -166,10 +190,14 @@ namespace MigrantWarriorsLibrary.Services
 
         public Dictionary<string, int> GetSkillsCount(string state, string district, bool isTopFive = false)
         {
+            if (_dbData == null)
+            {
+                Get();
+            }
             Helper helper = new Helper();
             var data = new Dictionary<string, int>();
-            var listOfData = state != null ? Get().FindAll(x => district != null ? x.District.ToString().ToLower() == district.ToLower() : x.State.ToString().ToLower() == state.ToLower()).ToList()
-                : Get().ToList();
+            var listOfData = state != null ? _dbData.FindAll(x => district != null ? x.District.ToString().ToLower() == district.ToLower() : x.State.ToString().ToLower() == state.ToLower()).ToList()
+                : _dbData.ToList();
             foreach(string skill in helper.Skills)
             {
                 data.Add(skill, listOfData.Where(x => x.Skill.Contains(skill)).Count());
@@ -188,9 +216,12 @@ namespace MigrantWarriorsLibrary.Services
 
         public Dictionary<string, int> GetGenderWiseInTopFiveStates(string gender)
         {
-            var listOfData = Get();
+            if (_dbData == null)
+            {
+                Get();
+            }
             var info = new Dictionary<string, int>();
-            var genderData = listOfData.Where(x => x.Gender.ToLower() == gender.ToLower()).ToList();
+            var genderData = _dbData.Where(x => x.Gender.ToLower() == gender.ToLower()).ToList();
             foreach (var stateDistrict in _statesDistricts)
             {
                 var countInState = genderData.Where(x => x.State.ToLower() == stateDistrict.Key.ToLower()).Count();
@@ -203,8 +234,12 @@ namespace MigrantWarriorsLibrary.Services
 
         public dynamic GetTopFiveRegistration(string state, string district)
         {
-            var listOfData = state != null ? Get().FindAll(x => district != null ? x.District.ToString().ToLower() == district.ToLower() : x.State.ToString().ToLower() == state.ToLower()).ToList()
-                        : Get().ToList();
+            if (_dbData == null)
+            {
+                Get();
+            }
+            var listOfData = state != null ? _dbData.FindAll(x => district != null ? x.District.ToString().ToLower() == district.ToLower() : x.State.ToString().ToLower() == state.ToLower()).ToList()
+                        : _dbData.ToList();
 
             return new ModeOfRegistration
             {
@@ -218,9 +253,13 @@ namespace MigrantWarriorsLibrary.Services
 
         public Dictionary<string, object> GetTopFiveSkillsVerifiedUnverifiedCount(string state, string district)
         {
+            if (_dbData == null)
+            {
+                Get();
+            }
             var info = new Dictionary<string, object>();
-            var listOfData = state != null ? Get().FindAll(x => district != null ? x.District.ToString().ToLower() == district.ToLower() : x.State.ToString().ToLower() == state.ToLower()).ToList()
-            : Get().ToList();
+            var listOfData = state != null ? _dbData.FindAll(x => district != null ? x.District.ToString().ToLower() == district.ToLower() : x.State.ToString().ToLower() == state.ToLower()).ToList()
+            : _dbData.ToList();
             var top5Skills = GetSkillsCount(state, district, true);
             foreach(var skill in top5Skills)
             {

@@ -28,7 +28,7 @@ namespace MigrantWarriorsLibrary.Controllers
         }
 
         [HttpGet]
-        public ActionResult<List<Migrant>> Get()
+        public ActionResult<bool> Get()
         {
             return _migrantService.Get();
         }
