@@ -136,18 +136,18 @@ namespace MigrantWarriorsLibrary.Services
             }
             ModeOfRegistration modeCount = new ModeOfRegistration
             {
-                Whatsapp = _dbData.Where(x => x.Mode == "Whatsapp").Count(),
-                Telegram = _dbData.Where(x => x.Mode == "Telegram").Count(),
-                SMS = _dbData.Where(x => x.Mode == "SMS").Count(),
-                WebForm = _dbData.Where(x => x.Mode == "Web Form").Count(),
-                PhoneCall = _dbData.Where(x => x.Mode == "Phone call").Count(),
+                Whatsapp = _dbData.Where(x => x.Mode.ToLower() == "Whatsapp".ToLower()).Count(),
+                Telegram = _dbData.Where(x => x.Mode.ToLower() == "Telegram".ToLower()).Count(),
+                SMS = _dbData.Where(x => x.Mode.ToLower() == "SMS".ToLower()).Count(),
+                WebForm = _dbData.Where(x => x.Mode.ToLower() == "Web Form".ToLower()).Count(),
+                PhoneCall = _dbData.Where(x => x.Mode.ToLower() == "Phone call".ToLower()).Count(),
             };
             return new UIData
             {
                 Verified = _dbData.Where(x => x.IsVerified == true).Count(),
                 UnVerified = _dbData.Where(x => x.IsVerified == false).Count(),
-                Female = _dbData.Where(x => x.Gender == "Female").Count(),
-                Male = _dbData.Where(x => x.Gender == "Male").Count(),
+                Female = _dbData.Where(x => x.Gender.ToLower() == "Female".ToLower()).Count(),
+                Male = _dbData.Where(x => x.Gender.ToLower() == "Male".ToLower()).Count(),
                 RegistrationModeCount = modeCount
             };
         }
@@ -178,12 +178,45 @@ namespace MigrantWarriorsLibrary.Services
             {
                 Get();
             }
-            var listOfData = state != null ? _dbData.FindAll (x => (district != null ? x.District.ToString().ToLower() == district.ToLower() : x.State.ToString().ToLower() == state.ToLower()) && x.RegisteredOn >= DateTime.Now.AddDays(-7)).ToList()
-                : _dbData.FindAll(x => x.RegisteredOn >= DateTime.Now.AddDays(-7)).ToList();
+            var listOfData = state != null ? _dbData.FindAll (x => (district != null ? x.District.ToString().ToLower() == district.ToLower() : x.State.ToString().ToLower() == state.ToLower())).ToList()
+                : _dbData.ToList();
             return new
             {
-                Verified = listOfData.Where(x => x.IsVerified).Count(),
-                UnVerified = listOfData.Where(x => !x.IsVerified).Count()
+                Day1 = new 
+                {
+                    Verified = listOfData.Where(x => x.RegisteredOn >= DateTime.Now.AddDays(-7) && x.RegisteredOn < DateTime.Now.AddDays(-6) && x.IsVerified).Count(),
+                    UnVerified = listOfData.Where(x => x.RegisteredOn >= DateTime.Now.AddDays(-7) && x.RegisteredOn < DateTime.Now.AddDays(-6) && !x.IsVerified).Count()
+                },
+                Day2 = new
+                {
+                    Verified = listOfData.Where(x => x.RegisteredOn >= DateTime.Now.AddDays(-6) && x.RegisteredOn < DateTime.Now.AddDays(-5) && x.IsVerified).Count(),
+                    UnVerified = listOfData.Where(x => x.RegisteredOn >= DateTime.Now.AddDays(-6) && x.RegisteredOn < DateTime.Now.AddDays(-5) && !x.IsVerified).Count()
+                }, 
+                Day3 = new
+                {
+                    Verified = listOfData.Where(x => x.RegisteredOn >= DateTime.Now.AddDays(-5) && x.RegisteredOn < DateTime.Now.AddDays(-4) && x.IsVerified).Count(),
+                    UnVerified = listOfData.Where(x => x.RegisteredOn >= DateTime.Now.AddDays(-5) && x.RegisteredOn < DateTime.Now.AddDays(-4) && !x.IsVerified).Count()
+                },
+                Day4 = new
+                {
+                    Verified = listOfData.Where(x => x.RegisteredOn >= DateTime.Now.AddDays(-4) && x.RegisteredOn < DateTime.Now.AddDays(-3) && x.IsVerified).Count(),
+                    UnVerified = listOfData.Where(x => x.RegisteredOn >= DateTime.Now.AddDays(-4) && x.RegisteredOn < DateTime.Now.AddDays(-3) && !x.IsVerified).Count()
+                },
+                Day5 = new
+                {
+                    Verified = listOfData.Where(x => x.RegisteredOn >= DateTime.Now.AddDays(-3) && x.RegisteredOn < DateTime.Now.AddDays(-2) && x.IsVerified).Count(),
+                    UnVerified = listOfData.Where(x => x.RegisteredOn >= DateTime.Now.AddDays(-3) && x.RegisteredOn < DateTime.Now.AddDays(-2) && !x.IsVerified).Count()
+                },
+                Day6 = new
+                {
+                    Verified = listOfData.Where(x => x.RegisteredOn >= DateTime.Now.AddDays(-2) && x.RegisteredOn < DateTime.Now.AddDays(-1) && x.IsVerified).Count(),
+                    UnVerified = listOfData.Where(x => x.RegisteredOn >= DateTime.Now.AddDays(-2) && x.RegisteredOn < DateTime.Now.AddDays(-1) && !x.IsVerified).Count()
+                },
+                Day7 = new
+                {
+                    Verified = listOfData.Where(x => x.RegisteredOn >= DateTime.Now.AddDays(-1) && x.IsVerified).Count(),
+                    UnVerified = listOfData.Where(x => x.RegisteredOn >= DateTime.Now.AddDays(-1) && !x.IsVerified).Count()
+                },
             };
 
         }
